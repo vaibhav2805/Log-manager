@@ -1,0 +1,131 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Search Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input, select {
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .log-entry {
+            border: 1px solid #ddd;
+            margin-top: 10px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Log Search Interface</h1>
+    <label for="level">Level:</label>
+    <input type="text" id="level">
+
+    <label for="message">Message:</label>
+    <input type="text" id="message">
+
+    <label for="resourceId">Resource ID:</label>
+    <input type="text" id="resourceId">
+
+    <label for="timestamp">Timestamp:</label>
+    <input type="text" id="timestamp" placeholder="YYYY-MM-DDTHH:mm:ssZ">
+
+    <label for="traceId">Trace ID:</label>
+    <input type="text" id="traceId">
+
+    <label for="spanId">Span ID:</label>
+    <input type="text" id="spanId">
+
+    <label for="commit">Commit:</label>
+    <input type="text" id="commit">
+
+    <label for="parentResourceId">Parent Resource ID:</label>
+    <input type="text" id="parentResourceId">
+
+    <button onclick="searchLogs()">Search Logs</button>
+
+    <div id="logResults"></div>
+
+    <script>
+        async function searchLogs() {
+            const queryParams = {
+                level: document.getElementById('level').value,
+                message: document.getElementById('message').value,
+                resourceId: document.getElementById('resourceId').value,
+                timestamp: document.getElementById('timestamp').value,
+                traceId: document.getElementById('traceId').value,
+                spanId: document.getElementById('spanId').value,
+                commit: document.getElementById('commit').value,
+                parentResourceId: document.getElementById('parentResourceId').value,
+            };
+
+            const queryString = Object.entries(queryParams)
+                .filter(([_, value]) => value.trim() !== '')
+                .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+                .join('&');
+
+            try {
+                const response = await fetch(`http://localhost:3000/logs?${queryString}`);
+                const logs = await response.json();
+
+                console.log('Logs:', logs);
+                displayLogs(logs);
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+            }
+        }
+
+        function displayLogs(logs) {
+            const logResultsElement = document.getElementById('logResults');
+            logResultsElement.innerHTML = '';
+
+            if (logs.length === 0) {
+                const div = document.createElement('div');
+                div.textContent = 'No logs found.';
+                logResultsElement.appendChild(div);
+            } else {
+                logs.forEach(log => {
+                    const div = document.createElement('div');
+                    div.classList.add('log-entry');
+                    div.innerHTML = `<p>${log.timestamp}: [${log.level}] ${log.message} - Resource ID: ${log.resourceId}, Trace ID: ${log.traceId}, Span ID: ${log.spanId}, Commit: ${log.commit}`;
+
+                    // Check if metadata exists and has parentResourceId
+                    if (log.metadata && log.metadata.parentResourceId) {
+                        div.innerHTML += `, Parent Resource ID: ${log.metadata.parentResourceId}</p>`;
+                    } else {
+                        div.innerHTML += '</p>';
+                    }
+
+                    logResultsElement.appendChild(div);
+                });
+            }
+
+            console.log('logResultsElement:', logResultsElement.innerHTML);
+        }
+    </script>
+</body>
+</html>
+
